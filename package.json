@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "size": "npm run build && node -e \"const fs=require('fs');const zlib=require('zlib');const buf=fs.readFileSync('dist/index.html');console.log('Gzipped size:', zlib.gzipSync(buf).length, 'bytes')\""
   },
   "devDependencies": {
     "typescript": "~6.0.2",
