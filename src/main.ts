@@ -7,6 +7,10 @@ import { COLORS, type BallColor } from './game/ball';
 import type { GateConfig } from './game/gates';
 import { createTrack } from './game/track';
 import { createDebugOverlay } from './game/debugOverlay';
+import { setupMraid } from './core/mraid';
+import { createCta, type Cta } from './ui/cta';
+
+const STORE_URL = 'https://apps.apple.com/app/id000000000';
 
 // Placeholder pacing data — Phase 2 Task 2c owns the tuned GATES const in game/gates.ts.
 const GATES: GateConfig[] = [
@@ -25,11 +29,26 @@ async function boot(): Promise<void> {
   const debug = createDebugOverlay(DESIGN_WIDTH, DESIGN_HEIGHT);
   layers.debug.addChild(debug.container);
 
+  // Assigned just below; the CTA state can only be reached long after that.
+  let cta: Cta | undefined;
+
   const director = new GameDirector(GATES, COLORS[0], {
-    onStateChange: (state) => console.debug('[director] state ->', state),
+    onStateChange: (state) => {
+      if (state === 'CTA') cta?.show();
+    },
     onGatePass: (gateIndex) => console.debug('[director] gate pass ->', gateIndex),
     onFinish: () => console.debug('[director] finish'),
   });
+
+  const mraid = setupMraid(app, {
+    // Wall-clock kept running while the ad was hidden; forgive it so idle-assist doesn't insta-fire on resume.
+    onResume: () => {
+      director.lastInputAt = performance.now();
+    },
+  });
+
+  cta = createCta(DESIGN_WIDTH, DESIGN_HEIGHT, () => mraid.clickthrough(STORE_URL));
+  layers.ui.addChild(cta.container);
 
   let colorIndex = 0;
   const onDirection = (dir: Direction): void => {
@@ -43,6 +62,14 @@ async function boot(): Promise<void> {
     if (event.repeat) return;
     if (event.key === 'd' || event.key === 'D') debug.toggle();
   });
+
+  // Test hook: ?state=cta jumps straight to the CTA without playing the run.
+  if (new URLSearchParams(window.location.search).get('state') === 'cta') {
+    cta.show();
+  }
+
+  // Gate the run on the ad being ready and actually on screen. Resolves immediately when unhosted.
+  await mraid.whenViewable();
 
   director.lastInputAt = performance.now();
   app.ticker.add((ticker) => {
