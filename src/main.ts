@@ -1,10 +1,12 @@
 import './style.css';
 import { createApp } from './core/app';
-import { setupResize } from './core/resize';
+import { DESIGN_HEIGHT, DESIGN_WIDTH, setupResize } from './core/resize';
 import { setupInput, type Direction } from './core/input';
 import { GameDirector } from './game/director';
 import { COLORS, type BallColor } from './game/ball';
 import type { GateConfig } from './game/gates';
+import { createTrack } from './game/track';
+import { createDebugOverlay } from './game/debugOverlay';
 
 // Placeholder pacing data — Phase 2 Task 2c owns the tuned GATES const in game/gates.ts.
 const GATES: GateConfig[] = [
@@ -14,8 +16,14 @@ const GATES: GateConfig[] = [
 ];
 
 async function boot(): Promise<void> {
-  const { app, root } = await createApp();
+  const { app, root, layers } = await createApp();
   setupResize(root);
+
+  const track = createTrack(DESIGN_WIDTH, DESIGN_HEIGHT);
+  layers.track.addChild(track.container);
+
+  const debug = createDebugOverlay(DESIGN_WIDTH, DESIGN_HEIGHT);
+  layers.debug.addChild(debug.container);
 
   const director = new GameDirector(GATES, COLORS[0], {
     onStateChange: (state) => console.debug('[director] state ->', state),
@@ -31,8 +39,19 @@ async function boot(): Promise<void> {
   };
   setupInput(app.canvas, onDirection);
 
+  window.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
+    if (event.key === 'd' || event.key === 'D') debug.toggle();
+  });
+
   director.lastInputAt = performance.now();
-  app.ticker.add((ticker) => director.update(ticker.deltaMS, performance.now()));
+  app.ticker.add((ticker) => {
+    director.update(ticker.deltaMS, performance.now());
+    track.update(director.distanceTraveled);
+    if (debug.visible) {
+      debug.update(director.runProgress, director.gateIndex, GATES.length, 0);
+    }
+  });
 }
 
 boot();
