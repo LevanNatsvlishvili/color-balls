@@ -9,6 +9,7 @@ export type DirectorState = 'INTRO' | 'RUN' | 'GATE_RESOLVE' | 'FINISH' | 'CTA';
 export interface DirectorEvents {
   onStateChange?(state: DirectorState): void;
   onGatePass?(gateIndex: number): void;
+  onNearMiss?(gateIndex: number): void;
   onFinish?(): void;
 }
 
@@ -16,6 +17,9 @@ const IDLE_TIMEOUT_MS = 4000;
 const INTRO_DURATION_MS = 600;
 const GATE_APPROACH_DURATION_MS = 2200;
 const FINISH_DURATION_MS = 1800;
+const SLOWMO_SCALE = 0.4;
+const SLOWMO_HOLD_MS = 300;
+const SLOWMO_EASE_MS = 200;
 
 export class GameDirector {
   state: DirectorState = 'INTRO';
@@ -33,6 +37,7 @@ export class GameDirector {
   private readonly events: DirectorEvents;
   private introElapsedMs = 0;
   private finishElapsedMs = 0;
+  private nearMissFired = false;
 
   constructor(gates: readonly GateConfig[], initialBallColor: BallColor, events: DirectorEvents = {}) {
     this.gates = gates;
@@ -71,10 +76,12 @@ export class GameDirector {
   /** Raw gesture reported by input.ts, already resolved to a target color by the caller. */
   registerInput(color: BallColor, nowMS: number): void {
     this.lastInputAt = nowMS;
-    if (this.state !== 'RUN') return;
+    if (this.state === 'CTA' || this.state === 'FINISH') return;
 
     const gate = this.gates[this.gateIndex];
-    if (gate.assist && this.runProgress >= gate.assistWindowStart) {
+    if (!gate) return;
+
+    if (this.state === 'RUN' && gate.assist && this.runProgress >= gate.assistWindowStart) {
       this.ballColor = gate.color;
     } else {
       this.ballColor = color;
@@ -101,6 +108,13 @@ export class GameDirector {
     this.runProgress += scaledDeltaMS / GATE_APPROACH_DURATION_MS;
     this.distanceTraveled += scaledDeltaMS;
 
+    const gate = this.gates[this.gateIndex];
+    if (gate?.assist && !this.nearMissFired && this.runProgress >= gate.assistWindowStart) {
+      this.nearMissFired = true;
+      this.triggerSlowMo(SLOWMO_SCALE, SLOWMO_HOLD_MS, SLOWMO_EASE_MS);
+      this.events.onNearMiss?.(this.gateIndex);
+    }
+
     if (this.runProgress >= 1) {
       this.runProgress = 1;
       this.resolveGate();
@@ -119,6 +133,7 @@ export class GameDirector {
 
     this.gateIndex++;
     this.runProgress = 0;
+    this.nearMissFired = false;
 
     if (this.gateIndex >= this.gates.length) {
       this.finishElapsedMs = 0;

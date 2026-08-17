@@ -14,6 +14,8 @@ export interface AppContext {
   app: Application;
   /** Wraps all layers so resize.ts can scale/letterbox them as one unit. */
   root: Container;
+  /** Gameplay layers only (track / game / fx). Shake this — never the CTA/UI layer. */
+  world: Container;
   layers: AppLayers;
 }
 
@@ -37,10 +39,12 @@ export async function createApp(): Promise<AppContext> {
     debug: new Container(),
   };
 
+  const world = new Container();
+  world.addChild(layers.track, layers.game, layers.fx);
+  // UI + debug sit on root so screen shake never moves the CTA overlay.
   const root = new Container();
-  // Rendered back-to-front: track backdrop, gameplay entities, particle fx, UI overlays, debug on top.
-  root.addChild(layers.track, layers.game, layers.fx, layers.ui, layers.debug);
+  root.addChild(world, layers.ui, layers.debug);
   app.stage.addChild(root);
 
-  return { app, root, layers };
+  return { app, root, world, layers };
 }
