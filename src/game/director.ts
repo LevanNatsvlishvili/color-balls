@@ -71,10 +71,10 @@ export class GameDirector {
   /** Raw gesture reported by input.ts, already resolved to a target color by the caller. */
   registerInput(color: BallColor, nowMS: number): void {
     this.lastInputAt = nowMS;
-    if (this.state !== 'RUN') return;
+    if (this.state === 'CTA') return;
 
     const gate = this.gates[this.gateIndex];
-    if (gate.assist && this.runProgress >= gate.assistWindowStart) {
+    if (this.state === 'RUN' && gate.assist && this.runProgress >= gate.assistWindowStart) {
       this.ballColor = gate.color;
     } else {
       this.ballColor = color;
