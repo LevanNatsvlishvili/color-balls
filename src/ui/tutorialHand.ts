@@ -1,4 +1,4 @@
-// Animated swipe hint hand shown at gate 2 until first input.
+// Animated swipe hint shown at gate 2 until first input.
 
 import { Container, Graphics } from 'pixi.js';
 import gsap from 'gsap';
@@ -11,67 +11,91 @@ export interface TutorialHand {
 
 const SKIN = 0xffd4b8;
 const OUTLINE = 0x2a1a12;
+const SIDE_INSET = 58;
 
 function drawHand(g: Graphics): void {
-  g.roundRect(-22, -6, 44, 50, 16).fill({ color: SKIN }).stroke({ width: 3, color: OUTLINE });
+  g.roundRect(-16, -4, 32, 36, 12).fill({ color: SKIN }).stroke({ width: 2.5, color: OUTLINE });
   for (let i = 0; i < 4; i++) {
-    const x = -18 + i * 12;
-    g.roundRect(x, -38, 10, 36, 5).fill({ color: SKIN }).stroke({ width: 2.5, color: OUTLINE });
+    const x = -14 + i * 9;
+    g.roundRect(x, -28, 7, 26, 4).fill({ color: SKIN }).stroke({ width: 2, color: OUTLINE });
   }
-  g.roundRect(-38, 2, 18, 26, 9).fill({ color: SKIN }).stroke({ width: 2.5, color: OUTLINE });
+  g.roundRect(-28, 2, 14, 18, 7).fill({ color: SKIN }).stroke({ width: 2, color: OUTLINE });
 }
 
-function drawChevrons(g: Graphics): void {
+function drawChevrons(g: Graphics, dir: 1 | -1): void {
   for (let i = 0; i < 3; i++) {
-    const x = 48 + i * 22;
+    const x = dir * (36 + i * 16);
     const alpha = 0.95 - i * 0.22;
-    g.moveTo(x, -14).lineTo(x + 16, 0).lineTo(x, 14).stroke({
-      width: 5,
-      color: 0xffffff,
-      alpha,
-      cap: 'round',
-      join: 'round',
-    });
+    g.moveTo(x - dir * 10, -11)
+      .lineTo(x + dir * 8, 0)
+      .lineTo(x - dir * 10, 11)
+      .stroke({
+        width: 5,
+        color: 0xffffff,
+        alpha,
+        cap: 'round',
+        join: 'round',
+      });
   }
+}
+
+function createSide(dir: 1 | -1): Container {
+  const side = new Container();
+  side.eventMode = 'none';
+
+  const hand = new Graphics();
+  drawHand(hand);
+  hand.eventMode = 'none';
+  if (dir === -1) hand.scale.x = -1;
+
+  const chevrons = new Graphics();
+  drawChevrons(chevrons, dir);
+  chevrons.eventMode = 'none';
+
+  side.addChild(hand, chevrons);
+  return side;
 }
 
 export function createTutorialHand(viewW: number, viewH: number): TutorialHand {
   const container = new Container();
   container.eventMode = 'none';
   container.visible = false;
-  container.position.set(viewW * 0.42, viewH * 0.72);
 
-  const motion = new Container();
-  motion.eventMode = 'none';
+  const left = createSide(-1);
+  left.position.set(SIDE_INSET, viewH * 0.58);
 
-  const hand = new Graphics();
-  drawHand(hand);
-  hand.eventMode = 'none';
+  const right = createSide(1);
+  right.position.set(viewW - SIDE_INSET, viewH * 0.58);
 
-  const chevrons = new Graphics();
-  drawChevrons(chevrons);
-  chevrons.eventMode = 'none';
-
-  motion.addChild(hand, chevrons);
-  container.addChild(motion);
+  container.addChild(left, right);
 
   let dismissed = false;
-  let loop: gsap.core.Tween | null = null;
+  const loops: gsap.core.Tween[] = [];
 
   function stopLoop(): void {
-    loop?.kill();
-    loop = null;
-    gsap.killTweensOf(motion);
-    motion.x = 0;
-    motion.alpha = 1;
+    for (const tween of loops) tween.kill();
+    loops.length = 0;
+    gsap.killTweensOf(left);
+    gsap.killTweensOf(right);
+    left.x = SIDE_INSET;
+    right.x = viewW - SIDE_INSET;
+    left.alpha = 1;
+    right.alpha = 1;
   }
 
   function startLoop(): void {
     stopLoop();
-    loop = gsap.fromTo(
-      motion,
-      { x: -28, alpha: 0.45 },
-      { x: 72, alpha: 1, duration: 0.7, ease: 'power2.out', repeat: -1, repeatDelay: 0.32 },
+    loops.push(
+      gsap.fromTo(
+        left,
+        { x: SIDE_INSET + 18, alpha: 0.45 },
+        { x: SIDE_INSET - 10, alpha: 1, duration: 0.7, ease: 'power2.out', repeat: -1, repeatDelay: 0.32 },
+      ),
+      gsap.fromTo(
+        right,
+        { x: viewW - SIDE_INSET - 18, alpha: 0.45 },
+        { x: viewW - SIDE_INSET + 10, alpha: 1, duration: 0.7, ease: 'power2.out', repeat: -1, repeatDelay: 0.32 },
+      ),
     );
   }
 
