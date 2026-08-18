@@ -18,6 +18,15 @@ import { createCta, type Cta } from './ui/cta';
 
 const STORE_URL = 'https://apps.apple.com/app/id000000000';
 
+/**
+ * Director tracing. Vite inlines `import.meta.env.DEV` to `false` for the build,
+ * so the shipped playable gets a no-op and stays silent — ad-network QA flags
+ * console output, and it is dead weight in a single-file ad.
+ */
+const trace: (...args: unknown[]) => void = import.meta.env.DEV
+  ? (...args) => console.debug('[director]', ...args)
+  : () => {};
+
 async function boot(): Promise<void> {
   const { app, root, world, layers } = await createApp();
   setupResize(root);
@@ -25,7 +34,7 @@ async function boot(): Promise<void> {
   const track = createTrack(DESIGN_WIDTH, DESIGN_HEIGHT);
   layers.track.addChild(track.container);
 
-  const trail = createTrail();
+  const trail = createTrail(DESIGN_WIDTH, DESIGN_HEIGHT);
   layers.game.addChild(trail.container);
 
   const ball = createBall(DESIGN_WIDTH, DESIGN_HEIGHT, COLORS[0]);
@@ -52,11 +61,11 @@ async function boot(): Promise<void> {
 
   const director = new GameDirector(GATES, COLORS[0], {
     onStateChange: (state) => {
-      console.debug('[director] state ->', state);
+      trace('state ->', state);
       if (state === 'CTA') cta?.show();
     },
     onGatePass: (gateIndex) => {
-      console.debug('[director] gate pass ->', gateIndex);
+      trace('gate pass ->', gateIndex);
       gates.shatter();
       particles.burst(ball.container.x, ball.container.y, director.ballColor);
       shake.trigger();
@@ -65,11 +74,11 @@ async function boot(): Promise<void> {
       if (gateIndex === 1) tutorialHand.dismiss();
     },
     onNearMiss: (gateIndex) => {
-      console.debug('[director] near miss ->', gateIndex);
+      trace('near miss ->', gateIndex);
       vignette.flash();
     },
     onFinish: () => {
-      console.debug('[director] finish');
+      trace('finish');
       textPops.showWin();
     },
   });
@@ -106,12 +115,21 @@ async function boot(): Promise<void> {
 
   director.lastInputAt = performance.now();
   app.ticker.add((ticker) => {
-    director.update(ticker.deltaMS, performance.now());
-    track.update(director.distanceTraveled);
-    trail.update(ticker.deltaMS, director.ballColor, DESIGN_WIDTH, DESIGN_HEIGHT);
-    particles.update(ticker.deltaMS);
-    ball.setColor(director.ballColor);
-    gates.update(director.runProgress, director.gateIndex);
+    const deltaMS = ticker.deltaMS;
+    director.update(deltaMS, performance.now());
+
+    // Once the CTA is up the world is frozen anyway — the director stops
+    // advancing runProgress and distanceTraveled, so these would only rewrite
+    // identical values behind the dim layer.
+    if (director.state !== 'CTA') {
+      track.update(director.distanceTraveled);
+      trail.update(deltaMS, director.ballColor);
+      ball.setColor(director.ballColor);
+      gates.update(director.runProgress, director.gateIndex);
+    }
+
+    particles.update(deltaMS);
+
     if (debug.visible) {
       debug.update(director.runProgress, director.gateIndex, GATES.length, 0);
     }

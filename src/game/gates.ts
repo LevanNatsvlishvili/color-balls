@@ -110,8 +110,13 @@ export function createGates(viewW: number, viewH: number): Gates {
     gsap.to(hint, { v: HINT_MIN, duration: 0.16, yoyo: true, repeat: -1, ease: 'sine.inOut' });
   }
 
+  let appliedTint = -1;
+
+  /** Called every frame; the guard keeps it to one colour conversion per change. */
   function applyTint(color: BallColor): void {
     const hex = COLOR_HEX[color];
+    if (hex === appliedTint) return;
+    appliedTint = hex;
     core.tint = hex;
     glow.tint = hex;
   }
