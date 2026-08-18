@@ -7,7 +7,9 @@
     "dev": "vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "size": "npm run build && node scripts/size.mjs"
+    "size": "npm run build && node scripts/size.mjs",
+    "build:portfolio": "npm run build && node scripts/build-portfolio.mjs",
+    "preview:portfolio": "npm run build:portfolio && npx --yes serve portfolio -p 4174"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

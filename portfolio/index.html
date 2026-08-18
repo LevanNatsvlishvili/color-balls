@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Color Match Gate Run — Playable Ad</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #0b0d12;
+        --panel: #141821;
+        --border: #2a3142;
+        --text: #e8ecf4;
+        --muted: #8b95a8;
+        --accent: #ff3d9a;
+        --accent-2: #00e5ff;
+        --accent-3: #ffe14d;
+        --shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+        --phone-width: min(340px, calc(100vw - 2rem));
+        --phone-height: calc(var(--phone-width) * 19.5 / 9);
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 61, 154, 0.12), transparent),
+          radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0, 229, 255, 0.08), transparent),
+          var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+      }
+
+      .page {
+        width: min(1100px, 100%);
+        margin: 0 auto;
+        padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem) 3rem;
+      }
+
+      header {
+        margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0 0 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 0 12px rgba(255, 61, 154, 0.6);
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 42rem;
+        color: var(--muted);
+        font-size: clamp(1rem, 2vw, 1.125rem);
+      }
+
+      .layout {
+        display: grid;
+        gap: clamp(1.5rem, 4vw, 2.5rem);
+        align-items: start;
+      }
+
+      @media (min-width: 900px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+        }
+      }
+
+      .stage-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .mode-tabs {
+        display: inline-flex;
+        padding: 0.25rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .mode-tabs button {
+        border: 0;
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 160ms ease, color 160ms ease;
+      }
+
+      .mode-tabs button[aria-selected='true'] {
+        background: linear-gradient(135deg, rgba(255, 61, 154, 0.22), rgba(0, 229, 255, 0.18));
+        color: var(--text);
+      }
+
+      .device-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+      }
+
+      .toolbar-btn {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.45rem 0.9rem;
+        background: var(--panel);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .toolbar-btn:hover {
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .phone-shell {
+        position: relative;
+        width: var(--phone-width);
+        height: var(--phone-height);
+        padding: 14px;
+        border-radius: 42px;
+        background: linear-gradient(160deg, #2a2f3d 0%, #11141b 55%, #080a0f 100%);
+        box-shadow:
+          var(--shadow),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+        transition: transform 320ms ease, width 320ms ease, height 320ms ease;
+      }
+
+      .phone-shell.landscape {
+        width: calc(var(--phone-width) * 19.5 / 9);
+        height: var(--phone-width);
+      }
+
+      .phone-shell::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        z-index: 2;
+        width: 34%;
+        height: 24px;
+        border-radius: 0 0 16px 16px;
+        background: #050608;
+        transform: translateX(-50%);
+      }
+
+      .phone-screen {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        border-radius: 30px;
+        background: #050608;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+
+      .phone-screen iframe,
+      .phone-screen video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #050608;
+      }
+
+      .demo-fallback {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 1.5rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .demo-fallback strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: var(--text);
+      }
+
+      .demo-fallback code {
+        display: inline-block;
+        margin-top: 0.75rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--accent-2);
+        font-size: 0.82rem;
+      }
+
+      .panel {
+        padding: 1.25rem 1.35rem;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(20, 24, 33, 0.82);
+        backdrop-filter: blur(8px);
+      }
+
+      .panel h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.05rem;
+      }
+
+      .panel p {
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .panel p:last-child {
+        margin-bottom: 0;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .stats li {
+        padding: 0.75rem 0.85rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .stats strong {
+        display: block;
+        margin-bottom: 0.15rem;
+        font-size: 1rem;
+        color: var(--text);
+      }
+
+      .stats span {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 1rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .tag-list li {
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        font-size: 0.78rem;
+      }
+
+      .hint {
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .watch-mode .interactive-view {
+        display: none;
+      }
+
+      .watch-mode .watch-view {
+        display: block;
+      }
+
+      .interactive-view {
+        display: block;
+      }
+
+      .watch-view {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <p class="eyebrow"><span></span> Playable Ad Case Study</p>
+        <h1>Color Match Gate Run</h1>
+        <p class="subtitle">
+          A rigged-pacing mobile playable built as one self-contained HTML file — procedural art,
+          MRAID-ready lifecycle, and ad-network size compliance.
+        </p>
+      </header>
+
+      <div class="layout">
+        <section class="stage-panel" id="stage">
+          <div class="mode-tabs" role="tablist" aria-label="Demo mode">
+            <button type="button" role="tab" id="tab-interactive" aria-selected="true" aria-controls="panel-interactive">
+              Try it
+            </button>
+            <button type="button" role="tab" id="tab-watch" aria-selected="false" aria-controls="panel-watch">
+              Watch demo
+            </button>
+          </div>
+
+          <div class="device-toolbar interactive-view">
+            <button type="button" class="toolbar-btn" id="toggle-orientation">Rotate to landscape</button>
+            <a class="toolbar-btn" href="./playable.html" target="_blank" rel="noopener">Open full screen</a>
+          </div>
+
+          <div class="phone-shell" id="phone-shell">
+            <div class="phone-screen">
+              <div class="interactive-view" id="panel-interactive" role="tabpanel" aria-labelledby="tab-interactive">
+                <iframe
+                  src="./playable.html"
+                  title="Color Match Gate Run playable ad"
+                  allow="autoplay"
+                  loading="eager"
+                ></iframe>
+              </div>
+              <div class="watch-view" id="panel-watch" role="tabpanel" aria-labelledby="tab-watch" hidden>
+                <video id="demo-video" muted playsinline loop poster="" aria-label="15 second gameplay demo">
+                  <source src="./demo.mp4" type="video/mp4" />
+                </video>
+                <div class="demo-fallback" id="demo-fallback">
+                  <strong>Demo video not found</strong>
+                  Drop a 15s screen capture at
+                  <code>portfolio/demo.mp4</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="hint interactive-view">
+            Swipe or tap left/right inside the frame. Add <code>?state=cta</code> to jump to the CTA overlay.
+          </p>
+        </section>
+
+        <aside class="panel">
+          <h2>How it's built</h2>
+          <p>
+            This playable ships as a single inlined HTML bundle — no runtime network requests, no image
+            assets, no external fonts. Every visual is drawn procedurally with Pixi.js Graphics, and the
+            build pipeline uses Vite plus vite-plugin-singlefile to collapse JS, CSS, and markup into one
+            deployable file.
+          </p>
+          <p>
+            Gameplay is orchestrated by a director state machine with rigged gate pacing and a 4-second
+            idle-assist fail-safe so the ad always completes. MRAID hooks gate startup on viewability,
+            pause/resume the ticker when the ad hides, and route CTA clicks through
+            <code>mraid.open()</code> when hosted.
+          </p>
+
+          <ul class="stats" id="build-stats">
+            <li>
+              <strong>—</strong>
+              <span>Gzipped</span>
+            </li>
+            <li>
+              <strong>—</strong>
+              <span>Raw HTML</span>
+            </li>
+            <li>
+              <strong>Pixi.js v8 + GSAP</strong>
+              <span>Stack</span>
+            </li>
+            <li>
+              <strong>Zero runtime fetches</strong>
+              <span>Compliance</span>
+            </li>
+          </ul>
+
+          <ul class="tag-list">
+            <li>Procedural assets</li>
+            <li>MRAID lifecycle</li>
+            <li>Rigged pacing</li>
+            <li>Object pooling</li>
+            <li>Portrait + landscape</li>
+            <li>Sandbox-safe iframe</li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const stage = document.getElementById('stage');
+      const phoneShell = document.getElementById('phone-shell');
+      const toggleOrientation = document.getElementById('toggle-orientation');
+      const tabInteractive = document.getElementById('tab-interactive');
+      const tabWatch = document.getElementById('tab-watch');
+      const panelInteractive = document.getElementById('panel-interactive');
+      const panelWatch = document.getElementById('panel-watch');
+      const demoVideo = document.getElementById('demo-video');
+      const demoFallback = document.getElementById('demo-fallback');
+      const buildStats = document.getElementById('build-stats');
+
+      let landscape = false;
+
+      function setMode(mode) {
+        const interactive = mode === 'interactive';
+        stage.classList.toggle('watch-mode', !interactive);
+        tabInteractive.setAttribute('aria-selected', String(interactive));
+        tabWatch.setAttribute('aria-selected', String(!interactive));
+        panelInteractive.hidden = !interactive;
+        panelWatch.hidden = interactive;
+
+        if (interactive) {
+          demoVideo.pause();
+        } else {
+          demoVideo.play().catch(() => {});
+        }
+      }
+
+      tabInteractive.addEventListener('click', () => setMode('interactive'));
+      tabWatch.addEventListener('click', () => setMode('watch'));
+
+      toggleOrientation.addEventListener('click', () => {
+        landscape = !landscape;
+        phoneShell.classList.toggle('landscape', landscape);
+        toggleOrientation.textContent = landscape ? 'Rotate to portrait' : 'Rotate to landscape';
+      });
+
+      demoVideo.addEventListener('error', () => {
+        demoVideo.classList.add('hidden');
+        demoFallback.style.display = 'flex';
+      });
+
+      fetch('./build-stats.json')
+        .then((response) => (response.ok ? response.json() : null))
+        .then((stats) => {
+          if (!stats) return;
+          const [gzipStat, rawStat] = buildStats.querySelectorAll('strong');
+          gzipStat.textContent = stats.gzipKb + ' KB';
+          rawStat.textContent = stats.rawKb + ' KB';
+        })
+        .catch(() => {});
+    </script>
+  </body>
+</html>
