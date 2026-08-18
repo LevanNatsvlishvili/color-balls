@@ -19,6 +19,13 @@ export interface AppContext {
   layers: AppLayers;
 }
 
+/**
+ * Cap the backing store at 2x. DPR-3 phones would otherwise render 2.25x the
+ * pixels of a DPR-2 phone for no visible gain, which is exactly where the
+ * mid-range 60fps target breaks.
+ */
+const MAX_RESOLUTION = 2;
+
 export async function createApp(): Promise<AppContext> {
   const app = new Application();
 
@@ -27,6 +34,10 @@ export async function createApp(): Promise<AppContext> {
     background: 0x0a0a12,
     backgroundAlpha: 1,
     antialias: window.matchMedia('(pointer: fine)').matches,
+    resolution: Math.min(window.devicePixelRatio || 1, MAX_RESOLUTION),
+    // Keeps the canvas CSS size in sync with the screen so resize.ts can keep
+    // doing its letterbox math in CSS pixels.
+    autoDensity: true,
   });
 
   document.body.appendChild(app.canvas);
