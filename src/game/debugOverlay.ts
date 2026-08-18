@@ -1,4 +1,4 @@
-// Debug overlay: projection grid, live gate t, and current lane. Toggle with 'd'.
+// Debug overlay: projection grid, live wall t, current lane, crash count. Toggle with 'd'.
 
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { project, TRACK_EDGE_LANE, type Lane, type Projected } from './track';
@@ -6,7 +6,7 @@ import { project, TRACK_EDGE_LANE, type Lane, type Projected } from './track';
 export interface DebugOverlay {
   readonly container: Container;
   visible: boolean;
-  update(runProgress: number, gateIndex: number, gateCount: number, lane: Lane): void;
+  update(runProgress: number, wallIndex: number, wallCount: number, lane: Lane, crashCount: number): void;
   toggle(): void;
 }
 
@@ -67,7 +67,7 @@ export function createDebugOverlay(viewW: number, viewH: number): DebugOverlay {
 
   const scratch: Projected = { x: 0, y: 0, scale: 0 };
 
-  function update(runProgress: number, gateIndex: number, gateCount: number, lane: Lane): void {
+  function update(runProgress: number, wallIndex: number, wallCount: number, lane: Lane, crashCount: number): void {
     livePlane.clear();
     drawPlane(livePlane, runProgress, viewW, viewH, 0xff4fa3, 0.95);
 
@@ -81,16 +81,17 @@ export function createDebugOverlay(viewW: number, viewH: number): DebugOverlay {
 
     hud.text =
       `DEBUG  (d to toggle)\n` +
-      `gate  ${gateIndex + 1} / ${gateCount}\n` +
+      `wall  ${Math.min(wallIndex + 1, wallCount)} / ${wallCount}\n` +
       `t     ${runProgress.toFixed(3)}\n` +
-      `lane  ${lane}`;
+      `lane  ${lane}\n` +
+      `crash ${crashCount}`;
   }
 
   function toggle(): void {
     container.visible = !container.visible;
   }
 
-  update(0, 0, 3, 0);
+  update(0, 0, 5, 0, 0);
 
   return {
     container,

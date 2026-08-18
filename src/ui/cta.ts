@@ -2,7 +2,7 @@
 
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import gsap from 'gsap';
-import { COLOR_HEX } from '../game/ball';
+import { BALL_HEX } from '../game/ball';
 
 const DIM_ALPHA = 0.72;
 const DIM_FADE_DURATION = 0.35;
@@ -54,7 +54,7 @@ export interface Cta {
   dispose(): void;
 }
 
-/** Procedural app icon — a rounded tile with the three-color ball motif. No image assets. */
+/** Procedural app icon — shielded ball threading a wall gap. No image assets. */
 function createAppIcon(): Container {
   const icon = new Container();
   icon.eventMode = 'none';
@@ -64,11 +64,18 @@ function createAppIcon(): Container {
     .fill({ color: 0x0d1022 })
     .stroke({ width: 3, color: 0x3a4270 });
 
-  const magenta = new Graphics().circle(-30, 18, 34).fill({ color: COLOR_HEX.magenta });
-  const cyan = new Graphics().circle(30, 18, 34).fill({ color: COLOR_HEX.cyan });
-  const yellow = new Graphics().circle(0, -30, 34).fill({ color: COLOR_HEX.yellow });
+  const wall = new Graphics()
+    .roundRect(-62, -12, 44, 24, 6)
+    .fill({ color: 0x2b3150 })
+    .stroke({ width: 3, color: 0xff7a3d, alpha: 0.9 })
+    .roundRect(18, -12, 44, 24, 6)
+    .fill({ color: 0x2b3150 })
+    .stroke({ width: 3, color: 0xff7a3d, alpha: 0.9 });
 
-  icon.addChild(tile, magenta, cyan, yellow);
+  const shield = new Graphics().circle(0, 22, 42).stroke({ width: 5, color: 0x6ee7ff, alpha: 0.75 });
+  const ball = new Graphics().circle(0, 22, 30).fill({ color: BALL_HEX });
+
+  icon.addChild(tile, wall, shield, ball);
   return icon;
 }
 
@@ -98,12 +105,12 @@ export function createCta(viewW: number, viewH: number, onClickthrough: () => vo
   icon.position.set(viewW / 2, panelTop + 130);
   panel.addChild(icon);
 
-  const title = new Text({ text: 'COLOR MATCH', style: titleStyle });
+  const title = new Text({ text: 'WALL DODGE', style: titleStyle });
   title.anchor.set(0.5);
   title.position.set(viewW / 2, panelTop + 262);
   panel.addChild(title);
 
-  const subtitle = new Text({ text: 'Can you clear every gate?', style: subtitleStyle });
+  const subtitle = new Text({ text: 'Can you clear every wall?', style: subtitleStyle });
   subtitle.anchor.set(0.5);
   subtitle.position.set(viewW / 2, panelTop + 312);
   panel.addChild(subtitle);

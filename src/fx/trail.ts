@@ -1,12 +1,12 @@
 // Motion trail ring buffer behind the ball.
 
 import { Container, Graphics } from 'pixi.js';
-import { BALL_RADIUS, COLOR_HEX, type BallColor } from '../game/ball';
-import { project, type Projected } from '../game/track';
+import { BALL_HEX, BALL_RADIUS } from '../game/ball';
+import { project } from '../game/track';
 
 export interface Trail {
   readonly container: Container;
-  update(deltaMS: number, color: BallColor): void;
+  update(deltaMS: number, ballX: number): void;
 }
 
 const TRAIL_COUNT = 12;
@@ -18,57 +18,66 @@ export function createTrail(viewW: number, viewH: number): Trail {
   const container = new Container();
   container.eventMode = 'none';
 
-  // Each ghost owns a fixed depth slot, so its pose is a constant — only the
-  // colour flowing through it changes. Computing these once keeps the per-frame
-  // work down to at most TRAIL_COUNT tint writes.
+  // Each ghost owns a fixed depth slot, so its y, scale, alpha and tint are all
+  // constants. Only x moves, and only when the ball changes lane — per-frame
+  // work stays at TRAIL_COUNT position writes, and none at all while straight.
   const graphics: Graphics[] = [];
-  const scratch: Projected = { x: 0, y: 0, scale: 0 };
+  const laneUnits: number[] = [];
+
+  const centerX = project(1, 0, viewW, viewH).x;
+  const nearLaneUnit = project(1, 1, viewW, viewH).x - centerX;
 
   for (let i = 0; i < TRAIL_COUNT; i++) {
     const age = i + 1;
     const frac = 1 - i / TRAIL_COUNT;
+    const t = 1 - age * T_STEP;
+    const pose = project(t, 0, viewW, viewH);
+
     const graphic = new Graphics().circle(0, 0, GHOST_RADIUS).fill({ color: 0xffffff });
     graphic.eventMode = 'none';
-
-    project(1 - age * T_STEP, 0, viewW, viewH, scratch);
-    graphic.position.set(scratch.x, scratch.y);
-    graphic.scale.set(scratch.scale * (0.28 + frac * 0.55));
+    graphic.tint = BALL_HEX;
+    graphic.position.set(pose.x, pose.y);
+    graphic.scale.set(pose.scale * (0.28 + frac * 0.55));
     graphic.alpha = 0.06 + frac * 0.38;
 
     container.addChild(graphic);
     graphics.push(graphic);
+    // Width of one lane unit at this depth — narrower further from the camera,
+    // so a trail left mid-swipe converges toward the vanishing point correctly.
+    laneUnits.push(project(t, 1, viewW, viewH).x - pose.x);
   }
 
-  // Ring buffer of sampled colours; index 0 of the read order is the newest.
-  const samples: BallColor[] = new Array<BallColor>(TRAIL_COUNT).fill('magenta');
+  // Ring buffer of sampled ball x; index 0 of the read order is the newest.
+  const samples: number[] = new Array<number>(TRAIL_COUNT).fill(centerX);
   let writeIndex = 0;
   let sampleAcc = 0;
   let dirty = true;
 
-  function applyTints(): void {
+  function applyPositions(): void {
     for (let i = 0; i < TRAIL_COUNT; i++) {
       const slot = (writeIndex - i - 1 + TRAIL_COUNT) % TRAIL_COUNT;
-      graphics[i].tint = COLOR_HEX[samples[slot]];
+      const offset = (samples[slot] - centerX) / nearLaneUnit;
+      graphics[i].x = centerX + offset * laneUnits[i];
     }
     dirty = false;
   }
 
-  function update(deltaMS: number, color: BallColor): void {
+  function update(deltaMS: number, ballX: number): void {
     sampleAcc += deltaMS;
     // Clamp so a long pause (backgrounded ad) doesn't spin the ring buffer.
     if (sampleAcc > SAMPLE_MS * TRAIL_COUNT) sampleAcc = SAMPLE_MS * TRAIL_COUNT;
 
     while (sampleAcc >= SAMPLE_MS) {
       sampleAcc -= SAMPLE_MS;
-      samples[writeIndex] = color;
+      samples[writeIndex] = ballX;
       writeIndex = (writeIndex + 1) % TRAIL_COUNT;
       dirty = true;
     }
 
-    if (dirty) applyTints();
+    if (dirty) applyPositions();
   }
 
-  applyTints();
+  applyPositions();
 
   return { container, update };
 }

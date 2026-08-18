@@ -1,11 +1,10 @@
-// Pooled particle burst emitter for gate pass feedback.
+// Pooled particle burst emitter for wall pass feedback.
 
 import { Container, Graphics } from 'pixi.js';
-import { COLOR_HEX, type BallColor } from '../game/ball';
 
 export interface Particles {
   readonly container: Container;
-  burst(x: number, y: number, color: BallColor): void;
+  burst(x: number, y: number, tint: number): void;
   update(deltaMS: number): void;
 }
 
@@ -34,15 +33,14 @@ export function createParticles(): Particles {
     particles.push({ graphic, vx: 0, vy: 0, life: 0 });
   }
 
-  function burst(x: number, y: number, color: BallColor): void {
-    const hex = COLOR_HEX[color];
+  function burst(x: number, y: number, tint: number): void {
     for (let i = 0; i < POOL_SIZE; i++) {
       const particle = particles[i];
       const angle = (i / POOL_SIZE) * Math.PI * 2;
       const speed = 280 + (i % 4) * 90;
 
       particle.graphic.visible = true;
-      particle.graphic.tint = hex;
+      particle.graphic.tint = tint;
       particle.graphic.alpha = 1;
       particle.graphic.scale.set(1);
       particle.graphic.position.set(x, y);
