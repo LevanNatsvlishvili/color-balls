@@ -65,7 +65,7 @@ async function boot(): Promise<void> {
     },
     onWallPass: (wallIndex) => {
       trace('wall pass ->', wallIndex);
-      walls.pass();
+      walls.pass(wallIndex);
       particles.burst(ball.container.x, ball.container.y, BALL_HEX);
       shake.trigger('pass');
       textPops.show(wallIndex >= 3 ? 'PERFECT!' : 'GREAT!');
@@ -74,25 +74,22 @@ async function boot(): Promise<void> {
     onCrashShielded: (wallIndex) => {
       trace('crash shielded ->', wallIndex);
       tutorialHand.dismiss();
-      // One beat: pop the shield, crack the wall, squash through the hole.
-      // Slow-mo is already running on the director; no vignette (shake only).
-      walls.crackOpen(director.lane);
+      walls.crackOpen(wallIndex, director.lane);
       ball.shatter();
       shake.trigger('crash');
       ball.squeezeThrough();
     },
     onCrashFatal: (wallIndex) => {
       trace('crash fatal ->', wallIndex);
-      walls.impact();
+      walls.impact(wallIndex);
       ball.tumble();
       shake.trigger('fail');
       tutorialHand.dismiss();
-      // Shown here rather than on the CTA state so it is tappable during the tumble.
       cta?.show();
     },
     onFinish: () => {
       trace('finish stretch');
-      walls.pass();
+      walls.clear();
     },
     onCelebrate: () => {
       trace('celebrate');
@@ -141,12 +138,9 @@ async function boot(): Promise<void> {
       track.update(director.distanceTraveled);
       if (director.state !== 'FAIL_IMPACT') ball.setLane(director.lane);
       trail.update(deltaMS, ball.container.x, director.speedScale);
-      const wallOnScreen =
-        director.state === 'RUN' ||
-        director.state === 'WALL_RESOLVE' ||
-        director.state === 'CRASH_RECOVER' ||
-        director.state === 'FAIL_IMPACT';
-      walls.update(director.runProgress, wallOnScreen ? director.wallIndex : -1);
+      if (director.state === 'RUN' || director.state === 'FAIL_IMPACT') {
+        walls.update(director.flights);
+      }
     }
 
     if (director.state === 'FINISH_STRETCH' || director.state === 'CELEBRATE') {

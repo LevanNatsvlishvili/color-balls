@@ -6,14 +6,20 @@ import type { WallConfig } from './walls';
 
 export type DirectorState =
   | 'INTRO'
-  | 'WALL_GAP'
   | 'RUN'
-  | 'WALL_RESOLVE'
-  | 'CRASH_RECOVER'
   | 'FAIL_IMPACT'
   | 'FINISH_STRETCH'
   | 'CELEBRATE'
   | 'CTA';
+
+export type WallFlightMode = 'approach' | 'cracked' | 'impact';
+
+export interface WallFlight {
+  index: number;
+  progress: number;
+  mode: WallFlightMode;
+  recoverMs: number;
+}
 
 export interface DirectorEvents {
   onStateChange?(state: DirectorState): void;
@@ -51,8 +57,9 @@ function clampLane(value: number): Lane {
 
 export class GameDirector {
   state: DirectorState = 'INTRO';
+  /** Nearest in-flight wall (highest progress). */
   wallIndex = 0;
-  /** 0..1 progress of the current wall's approach. Resets every wall. */
+  /** 0..1 progress of the nearest in-flight wall. */
   runProgress = 0;
   /** Monotonic, never resets — drives track/chevron scroll. */
   distanceTraveled = 0;
@@ -60,10 +67,15 @@ export class GameDirector {
   gameTimeScale = 1;
   lane: Lane = 0;
   crashCount = 0;
+  /** Live walls on the track. Mutated in place — do not hold across frames. */
+  readonly flights: WallFlight[] = [];
 
   private readonly walls: readonly WallConfig[];
   private readonly events: DirectorEvents;
   private stateElapsedMs = 0;
+  private nextSpawnIndex = 0;
+  private msSinceLastSpawn = 0;
+  private resolvedCount = 0;
 
   constructor(walls: readonly WallConfig[], events: DirectorEvents = {}) {
     this.walls = walls;
@@ -96,26 +108,13 @@ export class GameDirector {
 
     switch (this.state) {
       case 'INTRO':
-        if (this.stateElapsedMs >= INTRO_DURATION_MS) this.beginWall();
-        break;
-      case 'WALL_GAP':
-        this.distanceTraveled += scaledDeltaMS * this.speedScale;
-        if (this.stateElapsedMs >= this.walls[this.wallIndex].spacingMs) this.setState('RUN');
+        if (this.stateElapsedMs >= INTRO_DURATION_MS) {
+          this.setState('RUN');
+          this.spawnWall();
+        }
         break;
       case 'RUN':
-        this.updateRun(scaledDeltaMS);
-        break;
-      case 'WALL_RESOLVE':
-        // Dispatcher only — resolveWall() always leaves it in the same frame.
-        break;
-      case 'CRASH_RECOVER':
-        // The wall stays pinned at the ball (runProgress frozen) while it cracks
-        // open, but the track keeps scrolling so the slow-mo reads visually.
-        this.distanceTraveled += scaledDeltaMS * this.speedScale;
-        if (this.stateElapsedMs >= CRASH_RECOVER_DURATION_MS) {
-          this.wallIndex++;
-          this.beginWall();
-        }
+        this.updateRun(scaledDeltaMS, deltaMS);
         break;
       case 'FAIL_IMPACT':
         if (this.stateElapsedMs >= FAIL_IMPACT_DURATION_MS) this.setState('CTA');
@@ -134,6 +133,8 @@ export class GameDirector {
       case 'CTA':
         break;
     }
+
+    this.syncNearest();
   }
 
   /** Raw swipe reported by input.ts, already reduced to a lane delta by the caller. */
@@ -155,51 +156,105 @@ export class GameDirector {
     return CONTACT_T + forgiveness;
   }
 
-  private updateRun(scaledDeltaMS: number): void {
-    const wall = this.walls[this.wallIndex];
-    this.runProgress += scaledDeltaMS / wall.approachDurationMs;
-    this.distanceTraveled += scaledDeltaMS * this.speedScale;
+  private spawnWall(): void {
+    if (this.nextSpawnIndex >= this.walls.length) return;
+    this.flights.push({
+      index: this.nextSpawnIndex,
+      progress: 0,
+      mode: 'approach',
+      recoverMs: 0,
+    });
+    this.nextSpawnIndex++;
+  }
 
-    if (this.runProgress >= this.verdictT(wall)) {
-      if (this.runProgress > 1) this.runProgress = 1;
-      this.resolveWall(wall);
+  private updateRun(scaledDeltaMS: number, rawDeltaMS: number): void {
+    this.distanceTraveled += scaledDeltaMS * this.speedScale;
+    this.maybeSpawn(scaledDeltaMS);
+
+    for (let i = this.flights.length - 1; i >= 0; i--) {
+      const flight = this.flights[i];
+      if (flight.mode === 'impact') continue;
+
+      if (flight.mode === 'cracked') {
+        flight.recoverMs += rawDeltaMS;
+        if (flight.recoverMs >= CRASH_RECOVER_DURATION_MS) {
+          this.flights.splice(i, 1);
+          this.resolvedCount++;
+          this.maybeFinish();
+        }
+        continue;
+      }
+
+      const wall = this.walls[flight.index];
+      flight.progress += scaledDeltaMS / wall.approachDurationMs;
+      if (flight.progress >= this.verdictT(wall)) {
+        if (flight.progress > 1) flight.progress = 1;
+        this.resolveFlight(flight, i);
+      }
     }
   }
 
-  private resolveWall(wall: WallConfig): void {
-    this.setState('WALL_RESOLVE');
+  /**
+   * Insert the next wall `spacingMs` after the previous one was inserted —
+   * not after it was passed. Several walls can be on the track at once.
+   */
+  private maybeSpawn(scaledDeltaMS: number): void {
+    if (this.nextSpawnIndex >= this.walls.length || this.nextSpawnIndex === 0) return;
+    this.msSinceLastSpawn += scaledDeltaMS;
+    while (this.nextSpawnIndex < this.walls.length) {
+      const delay = this.walls[this.nextSpawnIndex - 1].spacingMs;
+      if (this.msSinceLastSpawn < delay) break;
+      this.msSinceLastSpawn -= delay;
+      this.spawnWall();
+    }
+  }
+
+  private resolveFlight(flight: WallFlight, flightIndex: number): void {
+    const wall = this.walls[flight.index];
 
     if (this.lane === wall.openLane) {
-      this.events.onWallPass?.(this.wallIndex);
-      this.wallIndex++;
-      this.beginWall();
+      this.events.onWallPass?.(flight.index);
+      this.flights.splice(flightIndex, 1);
+      this.resolvedCount++;
+      this.maybeFinish();
       return;
     }
 
     this.crashCount++;
 
     if (this.crashCount === 1) {
-      this.events.onCrashShielded?.(this.wallIndex);
+      flight.mode = 'cracked';
+      flight.recoverMs = 0;
+      this.events.onCrashShielded?.(flight.index);
       this.triggerSlowMo(SLOWMO_SCALE, SLOWMO_HOLD_MS, SLOWMO_EASE_MS);
-      this.setState('CRASH_RECOVER');
       return;
     }
 
-    this.events.onCrashFatal?.(this.wallIndex);
+    flight.mode = 'impact';
+    this.events.onCrashFatal?.(flight.index);
     this.setState('FAIL_IMPACT');
   }
 
-  /** Starts the breather before `wallIndex`, or ends the run when the walls are exhausted. */
-  private beginWall(): void {
-    this.runProgress = 0;
+  private maybeFinish(): void {
+    if (this.state !== 'RUN') return;
+    if (this.resolvedCount < this.walls.length) return;
+    this.flights.length = 0;
+    this.setState('FINISH_STRETCH');
+    this.events.onFinish?.();
+  }
 
-    if (this.wallIndex >= this.walls.length) {
-      this.setState('FINISH_STRETCH');
-      this.events.onFinish?.();
-      return;
+  private syncNearest(): void {
+    let nearest: WallFlight | undefined;
+    for (let i = 0; i < this.flights.length; i++) {
+      const flight = this.flights[i];
+      if (!nearest || flight.progress > nearest.progress) nearest = flight;
     }
-
-    this.setState('WALL_GAP');
+    if (nearest) {
+      this.wallIndex = nearest.index;
+      this.runProgress = nearest.progress;
+    } else if (this.nextSpawnIndex > 0) {
+      this.wallIndex = Math.min(this.nextSpawnIndex, this.walls.length) - 1;
+    }
   }
 
   private setState(next: DirectorState): void {
