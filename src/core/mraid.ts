@@ -19,13 +19,6 @@ declare global {
   }
 }
 
-export interface MraidOptions {
-  /** Fired when the ad leaves view. Gameplay is already frozen by the time this runs. */
-  onPause?(): void;
-  /** Fired when the ad returns to view, after the ticker restarts. Use it to forgive elapsed wall-clock time. */
-  onResume?(): void;
-}
-
 export interface Mraid {
   /** True when running inside a real MRAID container rather than a plain browser. */
   readonly isHosted: boolean;
@@ -36,7 +29,7 @@ export interface Mraid {
   dispose(): void;
 }
 
-export function setupMraid(app: Application, options: MraidOptions = {}): Mraid {
+export function setupMraid(app: Application): Mraid {
   const mraid = window.mraid;
   const isHosted = typeof mraid?.getState === 'function';
 
@@ -58,7 +51,6 @@ export function setupMraid(app: Application, options: MraidOptions = {}): Mraid 
     app.ticker.stop();
     // Pause (never re-timeScale) the global timeline so slow-mo's own scaling survives a pause/resume cycle.
     gsap.globalTimeline.pause();
-    options.onPause?.();
   }
 
   function resume(): void {
@@ -66,7 +58,6 @@ export function setupMraid(app: Application, options: MraidOptions = {}): Mraid 
     isPaused = false;
     gsap.globalTimeline.resume();
     app.ticker.start();
-    options.onResume?.();
   }
 
   function onViewableChange(isViewable: boolean): void {

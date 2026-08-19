@@ -82,10 +82,6 @@ export class GameDirector {
     this.events = events;
   }
 
-  get hasShield(): boolean {
-    return this.crashCount === 0;
-  }
-
   /**
    * Visual speed vs wall 1. Chevrons and the trail sample this so later walls
    * don't just arrive sooner — the road itself reads faster.
