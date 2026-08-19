@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Color Match Gate Run — Playable Ad</title>
+    <title>Wall Dodge — Playable Ad</title>
     <style>
       *,
       *::before,
@@ -331,7 +331,7 @@
     <div class="page">
       <header>
         <p class="eyebrow"><span></span> Playable Ad Case Study</p>
-        <h1>Color Match Gate Run</h1>
+        <h1>Wall Dodge</h1>
         <p class="subtitle">
           A rigged-pacing mobile playable built as one self-contained HTML file — procedural art,
           MRAID-ready lifecycle, and ad-network size compliance.
@@ -359,7 +359,7 @@
               <div class="interactive-view" id="panel-interactive" role="tabpanel" aria-labelledby="tab-interactive">
                 <iframe
                   src="./playable.html"
-                  title="Color Match Gate Run playable ad"
+                  title="Wall Dodge playable ad"
                   allow="autoplay"
                   loading="eager"
                 ></iframe>
@@ -391,10 +391,13 @@
             deployable file.
           </p>
           <p>
-            Gameplay is orchestrated by a director state machine with rigged gate pacing and a 4-second
-            idle-assist fail-safe so the ad always completes. MRAID hooks gate startup on viewability,
-            pause/resume the ticker when the ad hides, and route CTA clicks through
-            <code>mraid.open()</code> when hosted.
+            Gameplay is orchestrated by a director state machine driving a 13-wall difficulty ramp —
+            approach speed, wall spacing, and gap forgiveness all tighten from a single tuning table.
+            The first crash is survivable: the shield shatters into a 0.4s slow-mo beat and the run
+            continues; a second ends it. The CTA is event-driven off wall and finish-line events, never a
+            timer. MRAID hooks gate startup on viewability and pause both the ticker and GSAP’s global
+            timeline when the ad hides — so pausing mid slow-mo resumes still in slow-mo — then route CTA
+            clicks through <code>mraid.open()</code> when hosted.
           </p>
 
           <ul class="stats" id="build-stats">
@@ -420,6 +423,7 @@
             <li>Procedural assets</li>
             <li>MRAID lifecycle</li>
             <li>Rigged pacing</li>
+            <li>Shield + slow-mo crash</li>
             <li>Object pooling</li>
             <li>Portrait + landscape</li>
             <li>Sandbox-safe iframe</li>
