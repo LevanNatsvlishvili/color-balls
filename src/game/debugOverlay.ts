@@ -35,6 +35,7 @@ function drawPlane(g: Graphics, t: number, viewW: number, viewH: number, color: 
 export function createDebugOverlay(viewW: number, viewH: number): DebugOverlay {
   const container = new Container();
   container.eventMode = 'none';
+  container.visible = false;
 
   const gridGraphics = new Graphics();
   for (const t of GRID_T) {
