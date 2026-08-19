@@ -5,12 +5,11 @@ export default defineConfig({
   plugins: [viteSingleFile()],
   build: {
     target: 'es2018',
+    // Everything is inlined into one file, so the preload polyfill has nothing
+    // to preload — it only leaves a stray fetch() for network scanners to flag.
+    modulePreload: false,
     cssCodeSplit: false,
     assetsInlineLimit: 100000000,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
+    reportCompressedSize: false,
   },
 });

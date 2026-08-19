@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+portfolio/playable.html
+portfolio/build-stats.json
+portfolio/demo.mp4
 *.local
 
 # Editor directories and files
