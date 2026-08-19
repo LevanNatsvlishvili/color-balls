@@ -49,7 +49,6 @@ const LANES: readonly Lane[] = [-1, 0, 1];
 
 const SINGLE_HEIGHT = 118;
 const SPLIT_HEIGHT = 86;
-const LINTEL_HEIGHT = 22;
 const SPLIT_INSET = 0.1;
 const HOLE_WIDTH = BALL_RADIUS * 1.7;
 const SHARD_COUNT = 10;
@@ -129,20 +128,15 @@ export function createWalls(viewW: number, viewH: number): Walls {
 
   const glowA = new Graphics();
   const glowB = new Graphics();
-  const glowLintel = new Graphics();
   glowA.blendMode = 'add';
   glowB.blendMode = 'add';
-  glowLintel.blendMode = 'add';
   glowA.eventMode = 'none';
   glowB.eventMode = 'none';
-  glowLintel.eventMode = 'none';
 
   const bodyA = new Graphics();
   const bodyB = new Graphics();
-  const lintel = new Graphics();
   bodyA.eventMode = 'none';
   bodyB.eventMode = 'none';
-  lintel.eventMode = 'none';
 
   const crackLeft = new Graphics();
   const crackRight = new Graphics();
@@ -151,7 +145,7 @@ export function createWalls(viewW: number, viewH: number): Walls {
   crackLeft.visible = false;
   crackRight.visible = false;
 
-  wallRoot.addChild(glowA, glowB, glowLintel, bodyA, bodyB, lintel, crackLeft, crackRight);
+  wallRoot.addChild(glowA, glowB, bodyA, bodyB, crackLeft, crackRight);
 
   const shardLayer = new Container();
   shardLayer.eventMode = 'none';
@@ -192,10 +186,8 @@ export function createWalls(viewW: number, viewH: number): Walls {
   function hideBodies(): void {
     bodyA.visible = false;
     bodyB.visible = false;
-    lintel.visible = false;
     glowA.visible = false;
     glowB.visible = false;
-    glowLintel.visible = false;
   }
 
   function hideAll(): void {
@@ -263,13 +255,10 @@ export function createWalls(viewW: number, viewH: number): Walls {
     killCrack();
     bodyA.clear();
     bodyB.clear();
-    lintel.clear();
     glowA.clear();
     glowB.clear();
-    glowLintel.clear();
 
     pieces = layoutPieces(config);
-    const useLintel = config.type === 'single' && pieces.length === 2;
 
     if (pieces[0]) {
       paintGlow(glowA, pieces[0].x, pieces[0].w, pieces[0].h);
@@ -289,26 +278,6 @@ export function createWalls(viewW: number, viewH: number): Walls {
     } else {
       glowB.visible = false;
       bodyB.visible = false;
-    }
-
-    if (useLintel) {
-      const left = Math.min(pieces[0].x - pieces[0].w / 2, pieces[1].x - pieces[1].w / 2);
-      const right = Math.max(pieces[0].x + pieces[0].w / 2, pieces[1].x + pieces[1].w / 2);
-      const w = right - left;
-      const x = (left + right) / 2;
-      const y = -pieces[0].h / 2 - LINTEL_HEIGHT / 2 + 6;
-      glowLintel.roundRect(x - w / 2 - 8, y - LINTEL_HEIGHT / 2 - 8, w + 16, LINTEL_HEIGHT + 16, 10).fill({
-        color: GLOW_FILL,
-        alpha: 0.28,
-      });
-      lintel.roundRect(x - w / 2, y - LINTEL_HEIGHT / 2, w, LINTEL_HEIGHT, 8)
-        .fill({ color: SEGMENT_FILL })
-        .stroke({ width: 5, color: SEGMENT_STROKE, alpha: 0.95 });
-      glowLintel.visible = true;
-      lintel.visible = true;
-    } else {
-      glowLintel.visible = false;
-      lintel.visible = false;
     }
 
     wallRoot.visible = true;
