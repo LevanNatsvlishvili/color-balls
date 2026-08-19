@@ -15,16 +15,16 @@
 
 > Purple ball auto-rolls down the existing 3-lane perspective track. Swipe left/right changes LANE (reuses v1 swipe input; color system fully removed). Visible shield bubble around ball from start.
 >
-> **5 walls**, escalating: walls 1–2 single-gap (one lane open), walls 3–5 split-gap (two wall segments, one open lane between/beside them). Gap forgiveness, wall spacing, and approach speed all tighten each wall; total speed ramp ~15–20% wall 1 → wall 5.
+> **13 walls**, escalating: walls 1–4 single-gap (one lane open), walls 5–13 split-gap (two wall segments, one open lane between/beside them). Gap forgiveness, wall spacing, and approach speed all tighten each wall; approach ramps 2000ms → 900ms (~55% faster), spacing 2000ms → 500ms, forgiveness 220ms → 40ms. Several walls are in flight at once — spacing counts from the previous wall being SPAWNED, not passed.
 >
 > **Crash #1 (any wall):** shield shatters (bubble pop + shard burst), 0.4s slow-mo at ~40% timescale with white vignette flash, wall segment cracks open, ball squeezes through unharmed, run continues.
 > **Crash #2:** hard fail — ball bounces off wall with quick tumble (~0.3s), cut to CTA. No game-over screen, no retry.
 >
-> **Win path:** clear all 5 walls → ~1.5s finish stretch (clear road, confetti trail) → ~2s celebration (text pop + burst) → CTA.
+> **Win path:** clear all 13 walls → ~1.5s finish stretch (clear road, confetti trail) → ~2s celebration (text pop + burst) → CTA.
 >
-> **Idle assist unchanged:** 4s without input at any wall → auto-swipe into the gap.
+> **No idle assist.** Removed deliberately — the run is not rigged to complete itself. A player who never touches the screen crashes twice and reaches the CTA via the fail path.
 >
-> **Runtime:** ~13–15s to CTA on win path, ~10–12s on fail path. CTA triggers off wallCount/finish-line events, NEVER off a timer.
+> **Runtime (measured, not aspirational):** ~20s to CTA on a clean win. The fail path has no fixed length — it ends wherever the 2nd crash lands, from ~8.4s (no input at all) up past 15s for a late fumble. CTA triggers off wall/finish-line events, NEVER off a timer.
 
 ---
 
@@ -70,7 +70,7 @@ Also update `CLAUDE.md` + `.cursor/rules/*.mdc` NOW with the v2 spec (replace th
 **Prompt:**
 ```
 Read CLAUDE.md (v2 spec) and the R0 audit. In plan mode, redesign GameDirector:
-1. States: INTRO → RUN(wallIndex 0..4) → WALL_RESOLVE(pass | crash1 | crash2)
+1. States: INTRO → RUN(wallIndex 0..12) → WALL_RESOLVE(pass | crash1 | crash2)
    → FINISH_STRETCH → CELEBRATE → CTA, plus FAIL_IMPACT → CTA on crash2.
 2. crashCount lives in the director, not walls.ts. WALL_RESOLVE outcomes:
    - pass: burst + shake (existing fx), advance
@@ -85,8 +85,8 @@ Read CLAUDE.md (v2 spec) and the R0 audit. In plan mode, redesign GameDirector:
 4. Collision definition: ball is "in the gap" if its lane equals openLane at
    the moment wall t crosses the ball's t, with gapForgiveness allowing a
    late swipe mid-crossing on early walls (forgiveness shrinks per the table).
-5. Idle assist: unchanged 4s watcher, now emits a lane swipe toward openLane.
-   Must also pause during slow-mo and CTA.
+5. Idle assist: SUPERSEDED — this was built, then removed outright. The run is
+   not rigged to complete itself; a hands-off player fails out. Do not reinstate.
 Flag ambiguities before implementing.
 ```
 
@@ -133,9 +133,9 @@ Order:
 **Tool:** your thumbs on a phone · **Model:** none (or Haiku 4.5 / Composer for mechanical table edits)
 
 - Everything tunable is in the WALLS table — iterate there only.
-- Verify the three timing targets with a stopwatch: win path 13–15s, fail path 10–12s, wall-1 approach ≥2s (first-time readability).
-- Rig check: an average player should crash ~once around wall 4–5 on a natural run (the shield moment is your emotional peak — if nobody ever crashes, tighten wall-5 forgiveness; if everyone crashes twice, loosen it).
-- Idle test: hands-off full run must complete cleanly to CTA.
+- Verify with a stopwatch: clean win ~20s, wall-1 approach ≥2s (first-time readability). The fail path has no target length — it ends wherever the 2nd crash lands.
+- Rig check: an average player should crash ~once somewhere in the back half of the ramp (the shield moment is your emotional peak — if nobody ever crashes, tighten late-wall forgiveness; if everyone crashes twice early, loosen it).
+- Idle test: hands-off run must still reach the CTA — via the fail path, not a win. It must never stall or dead-end.
 
 ## Phase R5 — CTA trigger rework + compliance re-sweep (30 min)
 **Tool:** Claude Code · **Model:** Claude Opus 5
@@ -166,7 +166,7 @@ Order:
 
 ## Definition of done (v2 deltas)
 - No color system anywhere in the codebase; ball is purple with a visible shield
-- 5-wall ramp entirely table-driven; single + split gaps both readable at speed
+- 13-wall ramp entirely table-driven; single + split gaps both readable at speed
 - Crash #1: shatter + slow-mo + continue. Crash #2: impact → CTA. Both feel distinct
-- CTA is event-driven; win 13–15s, fail 10–12s, idle run completes hands-free
+- CTA is event-driven (no timers anywhere in src); clean win ~20s, fail path ends at the 2nd crash
 - Compliance sweep re-passed; size budget unchanged
