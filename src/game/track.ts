@@ -12,7 +12,7 @@ export interface Projected {
 
 export interface Track {
   readonly container: Container;
-  /** Scroll chevrons from a monotonic clock (ms). Do not pass runProgress — it resets per gate. */
+  /** Scroll chevrons from a monotonic clock (ms). Do not pass runProgress — it resets per wall. */
   update(distanceTraveled: number): void;
 }
 
@@ -53,7 +53,7 @@ function lerp(a: number, b: number, t: number): number {
 
 /**
  * Projects a normalized track position into screen space.
- * t=0 is the far vanishing point (spawn), t=1 is the near ball row (gate resolve).
+ * t=0 is the far vanishing point (spawn), t=1 is the near ball row (wall resolve).
  * Depth is power-eased (not linear) so approach visually accelerates like real perspective.
  * `lane` is typically -1 / 0 / 1; fractional values are valid (edges, dividers).
  */
