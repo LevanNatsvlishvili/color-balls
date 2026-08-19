@@ -73,7 +73,8 @@ async function boot(): Promise<void> {
     },
     onCrashShielded: (wallIndex) => {
       trace('crash shielded ->', wallIndex);
-      walls.crackOpen();
+      walls.crackOpen(director.lane);
+      ball.shatter();
       shake.trigger();
       tutorialHand.dismiss();
     },
@@ -132,10 +133,12 @@ async function boot(): Promise<void> {
       track.update(director.distanceTraveled);
       ball.setLane(director.lane);
       trail.update(deltaMS, ball.container.x);
-      // Only drawn while approaching. R2a extends this to keep the cracked-open
-      // wall on screen through CRASH_RECOVER as the ball squeezes past it.
-      const approaching = director.state === 'RUN' || director.state === 'WALL_RESOLVE';
-      walls.update(director.runProgress, approaching ? director.wallIndex : -1);
+      const wallOnScreen =
+        director.state === 'RUN' ||
+        director.state === 'WALL_RESOLVE' ||
+        director.state === 'CRASH_RECOVER' ||
+        director.state === 'FAIL_IMPACT';
+      walls.update(director.runProgress, wallOnScreen ? director.wallIndex : -1);
     }
 
     particles.update(deltaMS);
