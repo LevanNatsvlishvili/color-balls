@@ -38,10 +38,10 @@ export const WALLS: readonly WallConfig[] = [
   { type: 'split', openLane: 0, gapForgivenessMs: 40, approachDurationMs: 1400, spacingMs: 1000 },
   { type: 'split', openLane: -1, gapForgivenessMs: 40, approachDurationMs: 1400, spacingMs: 950 },
   { type: 'split', openLane: 1, gapForgivenessMs: 40, approachDurationMs: 1400, spacingMs: 950 },
-  { type: 'split', openLane: 0, gapForgivenessMs: 40, approachDurationMs: 1000, spacingMs: 850 },
-  { type: 'split', openLane: 1, gapForgivenessMs: 40, approachDurationMs: 1000, spacingMs: 800 },
-  { type: 'split', openLane: 0, gapForgivenessMs: 40, approachDurationMs: 900, spacingMs: 800 },
-  { type: 'split', openLane: -1, gapForgivenessMs: 40, approachDurationMs: 900, spacingMs: 800 },
+  { type: 'split', openLane: 0, gapForgivenessMs: 40, approachDurationMs: 1300, spacingMs: 750 },
+  { type: 'split', openLane: 1, gapForgivenessMs: 40, approachDurationMs: 1200, spacingMs: 700 },
+  { type: 'split', openLane: 0, gapForgivenessMs: 40, approachDurationMs: 1200, spacingMs: 600 },
+  { type: 'split', openLane: -1, gapForgivenessMs: 40, approachDurationMs: 1200, spacingMs: 500 },
 ];
 
 export interface Walls {
