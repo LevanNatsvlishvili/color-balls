@@ -3,28 +3,34 @@
 import gsap from 'gsap';
 import type { Container } from 'pixi.js';
 
+export type ShakeKind = 'pass' | 'crash' | 'fail';
+
 export interface Shake {
-  trigger(): void;
+  trigger(kind?: ShakeKind): void;
 }
 
-const AMPLITUDE = 6;
-const DURATION = 0.12;
+const PRESETS: Record<ShakeKind, { amplitude: number; duration: number }> = {
+  pass: { amplitude: 6, duration: 0.12 },
+  crash: { amplitude: 8, duration: 0.16 },
+  fail: { amplitude: 14, duration: 0.22 },
+};
 
 export function createShake(target: Container): Shake {
   let tween: gsap.core.Tween | null = null;
   const punch = { t: 0 };
 
-  function trigger(): void {
+  function trigger(kind: ShakeKind = 'pass'): void {
+    const preset = PRESETS[kind];
     tween?.kill();
     punch.t = 0;
     target.position.set(0, 0);
 
     tween = gsap.to(punch, {
       t: 1,
-      duration: DURATION,
+      duration: preset.duration,
       ease: 'power2.out',
       onUpdate: () => {
-        const mag = AMPLITUDE * (1 - punch.t);
+        const mag = preset.amplitude * (1 - punch.t);
         target.x = mag * (punch.t * 17 % 2 < 1 ? 1 : -1);
         target.y = mag * (punch.t * 11 % 2 < 1 ? -1 : 1);
       },

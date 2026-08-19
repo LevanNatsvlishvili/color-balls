@@ -74,6 +74,18 @@ export class GameDirector {
     return this.crashCount === 0;
   }
 
+  /**
+   * Visual speed vs wall 1. Chevrons and the trail sample this so later walls
+   * don't just arrive sooner — the road itself reads faster.
+   */
+  get speedScale(): number {
+    const baseline = this.walls[0]?.approachDurationMs ?? 2000;
+    const index = Math.min(this.wallIndex, this.walls.length - 1);
+    const wall = this.walls[index];
+    if (!wall) return 1;
+    return baseline / wall.approachDurationMs;
+  }
+
   /** Call once per tick with the raw (unscaled) frame delta. */
   update(deltaMS: number): void {
     this.stateElapsedMs += deltaMS;
@@ -87,7 +99,7 @@ export class GameDirector {
         if (this.stateElapsedMs >= INTRO_DURATION_MS) this.beginWall();
         break;
       case 'WALL_GAP':
-        this.distanceTraveled += scaledDeltaMS;
+        this.distanceTraveled += scaledDeltaMS * this.speedScale;
         if (this.stateElapsedMs >= this.walls[this.wallIndex].spacingMs) this.setState('RUN');
         break;
       case 'RUN':
@@ -99,7 +111,7 @@ export class GameDirector {
       case 'CRASH_RECOVER':
         // The wall stays pinned at the ball (runProgress frozen) while it cracks
         // open, but the track keeps scrolling so the slow-mo reads visually.
-        this.distanceTraveled += scaledDeltaMS;
+        this.distanceTraveled += scaledDeltaMS * this.speedScale;
         if (this.stateElapsedMs >= CRASH_RECOVER_DURATION_MS) {
           this.wallIndex++;
           this.beginWall();
@@ -109,14 +121,14 @@ export class GameDirector {
         if (this.stateElapsedMs >= FAIL_IMPACT_DURATION_MS) this.setState('CTA');
         break;
       case 'FINISH_STRETCH':
-        this.distanceTraveled += scaledDeltaMS;
+        this.distanceTraveled += scaledDeltaMS * this.speedScale;
         if (this.stateElapsedMs >= FINISH_STRETCH_DURATION_MS) {
           this.setState('CELEBRATE');
           this.events.onCelebrate?.();
         }
         break;
       case 'CELEBRATE':
-        this.distanceTraveled += scaledDeltaMS;
+        this.distanceTraveled += scaledDeltaMS * this.speedScale;
         if (this.stateElapsedMs >= CELEBRATE_DURATION_MS) this.setState('CTA');
         break;
       case 'CTA':
@@ -146,7 +158,7 @@ export class GameDirector {
   private updateRun(scaledDeltaMS: number): void {
     const wall = this.walls[this.wallIndex];
     this.runProgress += scaledDeltaMS / wall.approachDurationMs;
-    this.distanceTraveled += scaledDeltaMS;
+    this.distanceTraveled += scaledDeltaMS * this.speedScale;
 
     if (this.runProgress >= this.verdictT(wall)) {
       if (this.runProgress > 1) this.runProgress = 1;

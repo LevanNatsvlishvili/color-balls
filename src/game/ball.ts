@@ -20,6 +20,10 @@ export interface Ball {
   readonly hasShield: boolean;
   setLane(lane: Lane): void;
   shatter(): void;
+  /** Crash #1 — squash thin and pop through the cracked hole. */
+  squeezeThrough(): void;
+  /** Crash #2 — rotate and bounce off the wall. CTA can cover this. */
+  tumble(): void;
 }
 
 export function createBall(viewW: number, viewH: number, initialLane: Lane): Ball {
@@ -113,6 +117,27 @@ export function createBall(viewW: number, viewH: number, initialLane: Lane): Bal
     playSlideFx();
   }
 
+  function squeezeThrough(): void {
+    gsap.killTweensOf(squash.scale);
+    squash.scale.set(0.68, 1.22);
+    gsap.to(squash.scale, { x: 1, y: 1, duration: 0.42, ease: 'back.out' });
+  }
+
+  function tumble(): void {
+    gsap.killTweensOf(container);
+    gsap.killTweensOf(squash.scale);
+    const dir = lane === 0 ? 1 : lane;
+    gsap.to(container, {
+      rotation: dir * 2.5,
+      x: laneX[lane + 1] + dir * 32,
+      y: pose.y + 52,
+      duration: 0.3,
+      ease: 'power2.in',
+    });
+    squash.scale.set(1.28, 0.72);
+    gsap.to(squash.scale, { x: 1.05, y: 0.9, duration: 0.3, ease: 'power1.out' });
+  }
+
   function shatter(): void {
     if (!hasShield) return;
     hasShield = false;
@@ -161,5 +186,7 @@ export function createBall(viewW: number, viewH: number, initialLane: Lane): Bal
     },
     setLane,
     shatter,
+    squeezeThrough,
+    tumble,
   };
 }

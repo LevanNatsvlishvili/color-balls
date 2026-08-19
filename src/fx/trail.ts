@@ -6,7 +6,7 @@ import { project } from '../game/track';
 
 export interface Trail {
   readonly container: Container;
-  update(deltaMS: number, ballX: number): void;
+  update(deltaMS: number, ballX: number, speedScale?: number): void;
 }
 
 const TRAIL_COUNT = 12;
@@ -62,13 +62,14 @@ export function createTrail(viewW: number, viewH: number): Trail {
     dirty = false;
   }
 
-  function update(deltaMS: number, ballX: number): void {
+  function update(deltaMS: number, ballX: number, speedScale = 1): void {
+    const sampleMs = SAMPLE_MS / Math.max(0.5, speedScale);
     sampleAcc += deltaMS;
     // Clamp so a long pause (backgrounded ad) doesn't spin the ring buffer.
-    if (sampleAcc > SAMPLE_MS * TRAIL_COUNT) sampleAcc = SAMPLE_MS * TRAIL_COUNT;
+    if (sampleAcc > sampleMs * TRAIL_COUNT) sampleAcc = sampleMs * TRAIL_COUNT;
 
-    while (sampleAcc >= SAMPLE_MS) {
-      sampleAcc -= SAMPLE_MS;
+    while (sampleAcc >= sampleMs) {
+      sampleAcc -= sampleMs;
       samples[writeIndex] = ballX;
       writeIndex = (writeIndex + 1) % TRAIL_COUNT;
       dirty = true;

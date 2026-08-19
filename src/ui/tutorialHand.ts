@@ -1,6 +1,6 @@
-// Animated swipe hint shown at gate 2 until first input.
+// Animated swipe hint shown at wall 1 until first input.
 
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import gsap from 'gsap';
 
 export interface TutorialHand {
@@ -68,6 +68,22 @@ export function createTutorialHand(viewW: number, viewH: number): TutorialHand {
   right.position.set(viewW - SIDE_INSET, viewH * 0.58);
 
   container.addChild(left, right);
+
+  const label = new Text({
+    text: 'SWIPE TO DODGE',
+    style: new TextStyle({
+      fontFamily: 'system-ui, Segoe UI, Roboto, sans-serif',
+      fontSize: 28,
+      fontWeight: '800',
+      fill: '#ffffff',
+      stroke: { color: '#111118', width: 6 },
+      letterSpacing: 1.2,
+    }),
+  });
+  label.anchor.set(0.5);
+  label.position.set(viewW / 2, viewH * 0.7);
+  label.eventMode = 'none';
+  container.addChild(label);
 
   let dismissed = false;
   const loops: gsap.core.Tween[] = [];

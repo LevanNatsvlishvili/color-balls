@@ -5,10 +5,14 @@ import { Container, Graphics } from 'pixi.js';
 export interface Particles {
   readonly container: Container;
   burst(x: number, y: number, tint: number): void;
+  /** Emits a few idle-pool dots — used as the finish-stretch confetti trail. */
+  spray(x: number, y: number, tint: number): void;
   update(deltaMS: number): void;
 }
 
-const POOL_SIZE = 16;
+const POOL_SIZE = 24;
+const BURST_COUNT = 16;
+const SPRAY_COUNT = 4;
 const LIFE_MS = 400;
 const GRAVITY = 2400;
 const PARTICLE_RADIUS = 7;
@@ -34,9 +38,9 @@ export function createParticles(): Particles {
   }
 
   function burst(x: number, y: number, tint: number): void {
-    for (let i = 0; i < POOL_SIZE; i++) {
+    for (let i = 0; i < BURST_COUNT; i++) {
       const particle = particles[i];
-      const angle = (i / POOL_SIZE) * Math.PI * 2;
+      const angle = (i / BURST_COUNT) * Math.PI * 2;
       const speed = 280 + (i % 4) * 90;
 
       particle.graphic.visible = true;
@@ -48,6 +52,29 @@ export function createParticles(): Particles {
       particle.vy = Math.sin(angle) * speed - 420;
       particle.life = LIFE_MS;
     }
+  }
+
+  let sprayCursor = BURST_COUNT;
+
+  function spray(x: number, y: number, tint: number): void {
+    let spawned = 0;
+    for (let n = 0; n < POOL_SIZE && spawned < SPRAY_COUNT; n++) {
+      const particle = particles[(sprayCursor + n) % POOL_SIZE];
+      if (particle.life > 0) continue;
+
+      const angle = -0.6 + spawned * 0.4 + (sprayCursor % 5) * 0.12;
+      const speed = 90 + spawned * 40;
+      particle.graphic.visible = true;
+      particle.graphic.tint = tint;
+      particle.graphic.alpha = 1;
+      particle.graphic.scale.set(0.85);
+      particle.graphic.position.set(x, y);
+      particle.vx = Math.sin(angle) * speed;
+      particle.vy = -220 - spawned * 50;
+      particle.life = LIFE_MS;
+      spawned++;
+    }
+    sprayCursor = (sprayCursor + SPRAY_COUNT) % POOL_SIZE;
   }
 
   function update(deltaMS: number): void {
@@ -71,5 +98,5 @@ export function createParticles(): Particles {
     }
   }
 
-  return { container, burst, update };
+  return { container, burst, spray, update };
 }

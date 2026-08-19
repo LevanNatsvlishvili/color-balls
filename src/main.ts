@@ -67,21 +67,25 @@ async function boot(): Promise<void> {
       trace('wall pass ->', wallIndex);
       walls.pass();
       particles.burst(ball.container.x, ball.container.y, BALL_HEX);
-      shake.trigger();
+      shake.trigger('pass');
       textPops.show(wallIndex >= 3 ? 'PERFECT!' : 'GREAT!');
       if (wallIndex === 0) tutorialHand.dismiss();
     },
     onCrashShielded: (wallIndex) => {
       trace('crash shielded ->', wallIndex);
+      tutorialHand.dismiss();
+      // One beat: pop the shield, crack the wall, squash through the hole.
+      // Slow-mo is already running on the director; no vignette (shake only).
       walls.crackOpen(director.lane);
       ball.shatter();
-      shake.trigger();
-      tutorialHand.dismiss();
+      shake.trigger('crash');
+      ball.squeezeThrough();
     },
     onCrashFatal: (wallIndex) => {
       trace('crash fatal ->', wallIndex);
       walls.impact();
-      shake.trigger();
+      ball.tumble();
+      shake.trigger('fail');
       tutorialHand.dismiss();
       // Shown here rather than on the CTA state so it is tappable during the tumble.
       cta?.show();
@@ -122,6 +126,10 @@ async function boot(): Promise<void> {
   // Gate the run on the ad being ready and actually on screen. Resolves immediately when unhosted.
   await mraid.whenViewable();
 
+  const CONFETTI_TINTS = [BALL_HEX, 0xffe14d, 0xffffff, 0xff6bcb] as const;
+  let confettiAcc = 0;
+  let confettiTint = 0;
+
   app.ticker.add((ticker) => {
     const deltaMS = ticker.deltaMS;
     director.update(deltaMS);
@@ -131,14 +139,26 @@ async function boot(): Promise<void> {
     // identical values behind the dim layer.
     if (director.state !== 'CTA') {
       track.update(director.distanceTraveled);
-      ball.setLane(director.lane);
-      trail.update(deltaMS, ball.container.x);
+      if (director.state !== 'FAIL_IMPACT') ball.setLane(director.lane);
+      trail.update(deltaMS, ball.container.x, director.speedScale);
       const wallOnScreen =
         director.state === 'RUN' ||
         director.state === 'WALL_RESOLVE' ||
         director.state === 'CRASH_RECOVER' ||
         director.state === 'FAIL_IMPACT';
       walls.update(director.runProgress, wallOnScreen ? director.wallIndex : -1);
+    }
+
+    if (director.state === 'FINISH_STRETCH' || director.state === 'CELEBRATE') {
+      confettiAcc += deltaMS;
+      if (confettiAcc >= 70) {
+        confettiAcc -= 70;
+        particles.spray(
+          ball.container.x,
+          ball.container.y + 18,
+          CONFETTI_TINTS[confettiTint++ % CONFETTI_TINTS.length],
+        );
+      }
     }
 
     particles.update(deltaMS);
