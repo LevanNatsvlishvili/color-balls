@@ -15,6 +15,9 @@ portfolio/build-stats.json
 portfolio/demo.mp4
 *.local
 
+.cursor
+.claude
+claude.md
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
