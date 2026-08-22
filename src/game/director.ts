@@ -45,6 +45,16 @@ const CELEBRATE_DURATION_MS = 2000;
  */
 const CONTACT_T = 0.92;
 
+/**
+ * Progress at which this wall's verdict locks in. Forgiveness never pushes it
+ * past 1. Exported so the demo autopilot can aim at the same deadline the
+ * director judges against, instead of re-deriving it.
+ */
+export function verdictProgress(wall: WallConfig): number {
+  const forgiveness = Math.min(wall.gapForgivenessMs / wall.approachDurationMs, 1 - CONTACT_T);
+  return CONTACT_T + forgiveness;
+}
+
 const SLOWMO_SCALE = 0.4;
 const SLOWMO_HOLD_MS = 400;
 const SLOWMO_EASE_MS = 200;
@@ -146,12 +156,6 @@ export class GameDirector {
     gsap.to(this, { gameTimeScale: 1, duration: easeBackMs / 1000, delay: holdMs / 1000, ease: 'power1.out' });
   }
 
-  /** Progress at which this wall's verdict locks in. Forgiveness never pushes it past 1. */
-  private verdictT(wall: WallConfig): number {
-    const forgiveness = Math.min(wall.gapForgivenessMs / wall.approachDurationMs, 1 - CONTACT_T);
-    return CONTACT_T + forgiveness;
-  }
-
   private spawnWall(): void {
     if (this.nextSpawnIndex >= this.walls.length) return;
     this.flights.push({
@@ -183,7 +187,7 @@ export class GameDirector {
 
       const wall = this.walls[flight.index];
       flight.progress += scaledDeltaMS / wall.approachDurationMs;
-      if (flight.progress >= this.verdictT(wall)) {
+      if (flight.progress >= verdictProgress(wall)) {
         if (flight.progress > 1) flight.progress = 1;
         this.resolveFlight(flight, i);
       }

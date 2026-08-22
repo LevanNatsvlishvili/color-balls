@@ -1,73 +1,117 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Wall Dodge — compliance harness</title>
-<style>
-  body { margin:0; font:14px system-ui,sans-serif; background:#12121a; color:#e6e6f0;
-         display:flex; flex-direction:column; align-items:center; gap:12px; padding:16px; }
-  .bar { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-  button { background:#2a2f4a; color:#e6e6f0; border:1px solid #3f4670; border-radius:8px;
-           padding:8px 14px; cursor:pointer; font:inherit; }
-  button:hover { background:#3a4166; }
-  button.on { background:#22c55e; color:#06240f; border-color:#22c55e; }
-  #stage { border:2px solid #3f4670; border-radius:10px; overflow:hidden; background:#000;
-           transition:width .25s, height .25s; }
-  iframe { border:0; display:block; width:100%; height:100%; }
-  code { background:#1c2036; padding:2px 6px; border-radius:4px; }
-  .note { max-width:640px; line-height:1.6; color:#9aa0c8; }
-</style>
-</head>
-<body>
-  <div class="bar">
-    <button id="portrait" class="on">Portrait 390&times;844</button>
-    <button id="landscape">Landscape 844&times;390</button>
-    <button id="small">Small 320&times;568</button>
-    <button id="reload">Reload ad</button>
-    <button id="popups">allow-popups: OFF</button>
-  </div>
-  <div id="stage" style="width:390px;height:844px"><iframe id="ad"></iframe></div>
-  <p class="note">
-    Frame runs with <code id="sandboxLabel">sandbox="allow-scripts"</code> — the strictest
-    setting an ad network will use. <strong>Rotate mid slow-mo:</strong> crash once (shield
-    shatter), then hit Landscape while the beat is still playing; the letterbox must re-fit
-    with no state loss. With allow-popups OFF the store clickthrough is correctly blocked by
-    the browser — that is expected, not a bug. Watch the devtools console: it must stay
-    silent apart from any popup-blocked warning.
-  </p>
-<script>
-  const stage = document.getElementById('stage');
-  const label = document.getElementById('sandboxLabel');
-  let allowPopups = false;
+  <head>
+    <meta charset="utf-8" />
+    <title>Wall Run — compliance harness</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px system-ui, sans-serif;
+        background: #12121a;
+        color: #e6e6f0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      button {
+        background: #2a2f4a;
+        color: #e6e6f0;
+        border: 1px solid #3f4670;
+        border-radius: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+        font: inherit;
+      }
+      button:hover {
+        background: #3a4166;
+      }
+      button.on {
+        background: #22c55e;
+        color: #06240f;
+        border-color: #22c55e;
+      }
+      #stage {
+        border: 2px solid #3f4670;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #000;
+        transition: width 0.25s, height 0.25s;
+      }
+      iframe {
+        border: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      code {
+        background: #1c2036;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .note {
+        max-width: 640px;
+        line-height: 1.6;
+        color: #9aa0c8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <button id="portrait" class="on">Portrait 390&times;844</button>
+      <button id="landscape">Landscape 844&times;390</button>
+      <button id="small">Small 320&times;568</button>
+      <button id="reload">Reload ad</button>
+      <button id="popups">allow-popups: OFF</button>
+    </div>
+    <div id="stage" style="width: 390px; height: 844px"><iframe id="ad"></iframe></div>
+    <p class="note">
+      Frame runs with <code id="sandboxLabel">sandbox="allow-scripts"</code> — the strictest setting an ad network will
+      use. <strong>Rotate mid slow-mo:</strong> crash once (shield shatter), then hit Landscape while the beat is still
+      playing; the letterbox must re-fit with no state loss. With allow-popups OFF the store clickthrough is correctly
+      blocked by the browser — that is expected, not a bug. Watch the devtools console: it must stay silent apart from
+      any popup-blocked warning.
+    </p>
+    <script>
+      const stage = document.getElementById('stage');
+      const label = document.getElementById('sandboxLabel');
+      let allowPopups = false;
 
-  function mount() {
-    const old = document.getElementById('ad');
-    const frame = document.createElement('iframe');
-    frame.id = 'ad';
-    frame.setAttribute('sandbox', allowPopups ? 'allow-scripts allow-popups' : 'allow-scripts');
-    frame.src = 'dist/index.html?cachebust=' + Date.now();
-    old.replaceWith(frame);
-    label.textContent = 'sandbox="' + frame.getAttribute('sandbox') + '"';
-  }
+      function mount() {
+        const old = document.getElementById('ad');
+        const frame = document.createElement('iframe');
+        frame.id = 'ad';
+        frame.setAttribute('sandbox', allowPopups ? 'allow-scripts allow-popups' : 'allow-scripts');
+        frame.src = 'dist/index.html?cachebust=' + Date.now();
+        old.replaceWith(frame);
+        label.textContent = 'sandbox="' + frame.getAttribute('sandbox') + '"';
+      }
 
-  function size(w, h, btn) {
-    stage.style.width = w + 'px';
-    stage.style.height = h + 'px';
-    for (const b of document.querySelectorAll('.bar button')) b.classList.remove('on');
-    btn.classList.add('on');
-  }
+      function size(w, h, btn) {
+        stage.style.width = w + 'px';
+        stage.style.height = h + 'px';
+        for (const b of document.querySelectorAll('.bar button')) b.classList.remove('on');
+        btn.classList.add('on');
+      }
 
-  portrait.onclick = (e) => size(390, 844, e.target);
-  landscape.onclick = (e) => size(844, 390, e.target);
-  small.onclick = (e) => size(320, 568, e.target);
-  reload.onclick = mount;
-  popups.onclick = (e) => {
-    allowPopups = !allowPopups;
-    e.target.textContent = 'allow-popups: ' + (allowPopups ? 'ON' : 'OFF');
-    mount();
-  };
+      portrait.onclick = (e) => size(390, 844, e.target);
+      landscape.onclick = (e) => size(844, 390, e.target);
+      small.onclick = (e) => size(320, 568, e.target);
+      reload.onclick = mount;
+      popups.onclick = (e) => {
+        allowPopups = !allowPopups;
+        e.target.textContent = 'allow-popups: ' + (allowPopups ? 'ON' : 'OFF');
+        mount();
+      };
 
-  mount();
-</script>
-</body>
+      mount();
+    </script>
+  </body>
 </html>

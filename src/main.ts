@@ -3,6 +3,7 @@ import { createApp } from './core/app';
 import { DESIGN_HEIGHT, DESIGN_WIDTH, setupResize } from './core/resize';
 import { setupInput, type Direction } from './core/input';
 import { GameDirector } from './game/director';
+import { createAutopilot, type Autopilot } from './game/autopilot';
 import { BALL_HEX, createBall } from './game/ball';
 import { WALLS, createWalls } from './game/walls';
 import { createTrack } from './game/track';
@@ -56,12 +57,25 @@ async function boot(): Promise<void> {
   // Assigned just below; the CTA state can only be reached long after that.
   let cta: Cta | undefined;
 
+  const params = new URLSearchParams(window.location.search);
+  /**
+   * Capture hook: ?autoplay=1 lets the run play itself for portfolio recordings.
+   * Add &miss=N to fumble wall N first, so the take includes the shield shatter.
+   */
+  const autoplay = params.has('autoplay');
+  let autopilot: Autopilot | undefined;
+
   const director = new GameDirector(WALLS, {
     onStateChange: (state) => {
       trace('state ->', state);
       // Wall 1 is the teaching wall: hint while it approaches, gone once it resolves.
       if (state === 'RUN' && director.wallIndex === 0) tutorialHand.show();
-      if (state === 'CTA') cta?.show();
+      if (state === 'CTA') {
+        cta?.show();
+        // Lets the capture script stop on the actual end of the run rather than
+        // a fixed timer that goes stale every time the WALLS table is retuned.
+        if (autoplay) document.documentElement.dataset.runComplete = '1';
+      }
     },
     onWallPass: (wallIndex) => {
       trace('wall pass ->', wallIndex);
@@ -98,6 +112,10 @@ async function boot(): Promise<void> {
     },
   });
 
+  if (autoplay) {
+    autopilot = createAutopilot(director, WALLS, { missWallIndex: Number(params.get('miss') ?? -1) });
+  }
+
   const mraid = setupMraid(app);
 
   // Added last so the CTA sits above the text pops and tutorial hand.
@@ -116,7 +134,7 @@ async function boot(): Promise<void> {
   });
 
   // Test hook: ?state=cta jumps straight to the CTA without playing the run.
-  if (new URLSearchParams(window.location.search).get('state') === 'cta') {
+  if (params.get('state') === 'cta') {
     cta.show();
   }
 
@@ -129,6 +147,7 @@ async function boot(): Promise<void> {
 
   app.ticker.add((ticker) => {
     const deltaMS = ticker.deltaMS;
+    autopilot?.update(deltaMS);
     director.update(deltaMS);
 
     // Once the CTA is up the world is frozen anyway — the director stops

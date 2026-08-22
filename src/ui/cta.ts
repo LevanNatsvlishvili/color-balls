@@ -105,7 +105,7 @@ export function createCta(viewW: number, viewH: number, onClickthrough: () => vo
   icon.position.set(viewW / 2, panelTop + 130);
   panel.addChild(icon);
 
-  const title = new Text({ text: 'WALL DODGE', style: titleStyle });
+  const title = new Text({ text: 'Wall Run', style: titleStyle });
   title.anchor.set(0.5);
   title.position.set(viewW / 2, panelTop + 262);
   panel.addChild(title);

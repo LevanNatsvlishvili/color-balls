@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "size": "npm run build && node scripts/size.mjs",
     "build:portfolio": "npm run build && node scripts/build-portfolio.mjs",
+    "capture": "node scripts/capture-demos.mjs",
     "preview:portfolio": "npm run build:portfolio && npx --yes serve portfolio -p 4174"
   },
   "devDependencies": {
+    "playwright": "^1.62.1",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vite-plugin-singlefile": "^2.3.3"
